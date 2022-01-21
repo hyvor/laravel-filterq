@@ -5,17 +5,17 @@ use Hyvor\FilterQ\Facades\FilterQ;
 use Hyvor\FilterQ\Tests\TestCase;
 use Illuminate\Support\Facades\DB;
 
-/* class FilterQTest extends TestCase {
+class FilterQTest extends TestCase {
 
     public function test() {
 
         $query = FilterQ::input('hello=12&hyvor=talk&id=12093&slug=12kj')
             ->builder(DB::table('posts'))
             ->addOperator('~', 'LIKE')
-            ->finish();
+            ->addWhere();
 
-        //$query->dd();
+        $query->dd();
 
     }
 
-} */
+}

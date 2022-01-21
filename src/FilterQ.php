@@ -66,7 +66,7 @@ class FilterQ {
     }
 
 
-    public function finish() {
+    public function addWhere() {
         $parsed = Parser::parse($this->input, $this->operators); 
 
        // dd($parsed);
@@ -88,12 +88,12 @@ class FilterQ {
 
     private function addWhereToQuery($query, $logicChunk) {
 
-        $type = $logicChunk['type'];
+        $type = isset($logicChunk['or']) ? 'or' : 'and';
         $logicChunkWhere = $type === 'and' ? 'where' : 'orWhere';
 
-        foreach ($logicChunk['conditions'] as $condition) {
+        foreach ($logicChunk[$type] as $condition) {
 
-            if (isset($condition['type'])) {
+            if (isset($condition['and']) || isset($condition['or'])) {
                 /**
                  * Logical condition (AND|OR)
                  */
