@@ -38,7 +38,7 @@ class Parser {
          */
         
         /**
-         * 1. Match balanced parentheses (no global)
+         * 1. Match balanced parentheses (not global match)
          *    https://stackoverflow.com/a/35271017/9059939
          * 2. If the length of the fully matched string is not the length of the input,
          *    It means there are no global brackets
@@ -55,7 +55,7 @@ class Parser {
 
     /**
      * This funcrtion parses anything between ()
-     * It is called recursively
+     * It is called recursively for nested ()
      */
     private function parseParentheses() {
 
@@ -69,13 +69,16 @@ class Parser {
 
         /**
          * Saves the output to return at the end of this function
-         * This is 
          */
         $output = [];
+
+        /**
+         * AND | OR
+         */
         $currentLogic = null;
 
         while ($this->validateEndOfInput() && $this->input[$this->i] !== ')') {
-
+            
             $this->skipWhitespaces();
 
             if ($this->input[$this->i] === '(') {
@@ -94,12 +97,16 @@ class Parser {
             $matched = preg_match('/^([a-zA-Z0-9_.]+)(?:\s+)?(=|!=|>=|<=|>|<)/', $this->getNextPart(), $keyMatches);
 
             if ($matched) {
+
                 $fullMatch = $keyMatches[0];
                 $key = $keyMatches[1];
                 $operator = $keyMatches[2];
 
                 $this->i += strlen($fullMatch);
 
+                /**
+                 * Find the value which comes after the key+operator
+                 */
                 $value = $this->parseValue();
 
                 $output[] = [$key, $operator, $value];
@@ -129,7 +136,13 @@ class Parser {
                 continue;
             }
 
-            $this->i++;
+            /**
+             * Skip unmatched text/content except )
+             */
+            if ($this->input[$this->i] !== ')') {
+                $this->i++;
+            }
+    
         }
 
         // skip )
@@ -144,10 +157,6 @@ class Parser {
     private function parseValue() {
         $this->skipWhitespaces();
 
-        /**
-         * It is important to have true/false/null before parsing strings, 
-         * because those values can be matched as literals in parseString
-         */
         return $this->parseNumber() ??
             $this->parseString() ??
             $this->parseKeyword('true', true) ??
@@ -155,6 +164,9 @@ class Parser {
             $this->parseKeyword('null', null);
     }
 
+    /**
+     * Parses a number
+     */
     private function parseNumber() : int|float|null {    
 
         if (
@@ -183,7 +195,7 @@ class Parser {
 
     private function parseString() : ?string {
         
-
+        // with quotes
         if ($this->input[$this->i] === "'") {
             $this->i++;
 
@@ -214,8 +226,10 @@ class Parser {
             return $string;
 
         } else if (
-            preg_match('/^[a-zA-Z0-9_-]+/', $this->getNextPart(), $withoutQuotesMatches)
+            preg_match('/^[a-zA-Z_][a-zA-Z0-9_-]+/', $this->getNextPart(), $withoutQuotesMatches)
         ) {
+
+            // without quotes
 
             $string = $withoutQuotesMatches[0];
 
@@ -243,9 +257,6 @@ class Parser {
 
     }
 
-
-
-
     /**
      * Get the part after the cursor in the input
      */
@@ -258,6 +269,9 @@ class Parser {
      * Cursor placed at the next
      */
     private function skipWhitespaces() {
+        /**
+         * No need to check the end of string, because the input is trimmed
+         */
         while (
             $this->input[$this->i] === " " ||
             $this->input[$this->i] === "\n" ||
@@ -269,6 +283,7 @@ class Parser {
     }
 
     private function validateEndOfInput($error = null) {
+        
         /**
          * Check if the string is over before the next loop
          */
@@ -280,8 +295,6 @@ class Parser {
 
         return true;
     }
-
-
 
     static function parse(string $input) {
         return (new self($input))->output;

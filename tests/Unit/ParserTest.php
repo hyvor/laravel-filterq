@@ -176,7 +176,7 @@ class ParserTest extends TestCase {
         Parser::parse('key=1|key2=2&key3=3');
     }
 
-    public function testNested() {
+    public function testParsingNested() {
 
         $this->assertEquals(
             Parser::parse('key1=1&(key2=2|key3=3)'),
@@ -210,6 +210,45 @@ class ParserTest extends TestCase {
                             ]
                         ]
                     ]
+                ]
+            ]
+        );
+
+    }
+
+    public function testParsingMultiline() {
+
+        $this->assertEquals(
+            Parser::parse("
+                key1 = 1 & 
+                (
+                    key2 = 2 |
+                    key3 = 3
+                )
+            "),
+            [
+                'and' => [
+                    ['key1', '=', '1'],
+                    [
+                        'or' => [
+                            ['key2', '=', '2'],
+                            ['key3', '=', '3'],
+                        ]
+                    ]
+                ]
+            ]
+        );
+
+    }
+
+    public function testParsingInvalid() {
+
+        // skips the outside of quotes
+        $this->assertEquals(
+            Parser::parse("key='hello'world"),
+            [
+                'and' => [
+                    ['key', '=', 'hello'],
                 ]
             ]
         );

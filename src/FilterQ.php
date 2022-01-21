@@ -1,44 +1,123 @@
 <?php
 namespace Hyvor\FilterQ;
 
-class FilterQ {
+use Illuminate\Database\Query\Builder;
 
-    /**
-     * string '=' or
-     * array  ['~', 'LIKE'] [filterQ operator, SQL operator]
-     */
-    private $operators = [
-        '=', '!=', '>', '<', '>=', '<='
-    ];
+class FilterQ {
 
     /**
      * Allowed keys
      */
     private $keys = [];
 
-    public function __construct(string $input) {
-        $this->input = Parser::parse($input);
+    /**
+     * The input string
+     * contains the logic
+     */
+    private string $input;
 
-        
+    /**
+     * The builder which we add where statements to
+     */
+    private Builder $builder;
+
+    /**
+     * [
+     *  '=' => '='
+     * ]
+     * key = the operator in the logical expression
+     * value = the SQL operator that it converts to
+     */
+    private array $operators = [
+        '=' => '=',
+        '!=' => '!=',
+        '>' => '>',
+        '<' => '<',
+        '>=' => '>=',
+        '<=' => '<=',
+    ];
+
+    public function input(string $input) {
+        $this->input = $input;
+        return $this;
     }
 
-    public function addOperator(string $operator, ?string $sqlOperator = null) {
-        $this->operators[] = $sqlOperator === null ? $operator : [$operator, $sqlOperator];
+    public function builder(Builder $builder) {
+        $this->builder = $builder;
+        return $this;
     }
 
-    public function removeOperators(string|array $operators) {
-        if (is_string($operators)) {
-            $operators = [$operators];
+    public function addOperator(string $operator, string $sqlOperator) {
+        $this->operators[$operator] = $sqlOperator;
+
+        return $this;
+    }
+
+    public function removeOperators(string $operator) {
+        if (isset($this->operators[$operator])) {
+            unset($this->operators[$operator]);
         }
-        $this->operators = array_diff($this->operators, $operators);
+        return $this;
     }
 
-    public function setKeys($keys) {
+    public function setOperators(array $operators) {
+        $this->operators = $operators;
+        return $this;
+    }
+
+
+    public function finish() {
+        $parsed = Parser::parse($this->input, $this->operators); 
+
+       // dd($parsed);
+        /**
+         * Logic chunk = [
+         *  'type' => and|or
+         *  'conditions' => [
+         *      ['key', '=', 'value']
+         *  ]
+         * ]
+         */
+
+        $this->builder->where(function($query) use ($parsed) {
+            $this->addWhereToQuery($query, $parsed);
+        });
+
+        return $this->builder;
+    }
+
+    private function addWhereToQuery($query, $logicChunk) {
+
+        $type = $logicChunk['type'];
+        $logicChunkWhere = $type === 'and' ? 'where' : 'orWhere';
+
+        foreach ($logicChunk['conditions'] as $condition) {
+
+            if (isset($condition['type'])) {
+                /**
+                 * Logical condition (AND|OR)
+                 */
+                $query->{$logicChunkWhere}(function($q) use ($condition) {
+                    $this->addWhereToQuery($q, $condition);
+                });
+    
+            } else {
+
+                /**
+                 * Comparison condition
+                 */
+
+                $key = $condition[0];
+                $operator = $condition[1];
+                $value = $condition[2];
+
+                $query->{$logicChunkWhere}($key, $operator, $value);
+    
+            }
+
+        }        
 
     }
 
 
-    static function parse(string $input) {
-        return new self($input);
-    }
 }

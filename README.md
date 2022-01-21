@@ -1,43 +1,60 @@
 ## Introduction
 
-FilterQ is a library that converts a single-line logical expression to SQL WHERE (Using Laravel Query Builder).
+FilterQ is a library to allow your API consumers to write the `WHERE` part of a SQL query in a single HTTP GET parameter.
 
-Your API gets an input like this.
+They send a `filter` input like this.
 ```
-id=213|slug='hello'
-```
-
-And, FilterQ converts it to a SQL.
-```sql
-WHERE id = 213 OR slug = 'hello'
+id=213&slug=hello
 ```
 
-This allows your API consumers to write complex filtering logic, even with nesting. They can directly use the column names of your table or you can even define custom handlers to do operations like joins!
+And, FilterQ securely converts it to `WHERE` in Laravel Query Builder.
+```php
+->where('id', 213)
+->where('slug', 'hello');
+```
+
+FilterQ supports `AND`, `OR`, and grouping logics, which makes it extremely powerful. It's like making it possible for your API consumers to filter data directly via SQL. To do that, they can directly use the column names of your table or you can even define custom handlers to do operations like joins!
 
 ```
 name=starter&(type=image|type=video)
 ```
 
-```sql
-WHERE name = 'starter' AND ( type = 'image' OR type = 'video' )
+Converts to:
+
+```php
+->where('name', 'starter')
+->where(function($query) {
+    $query->where('type', 'image')
+        ->orWhere('type', 'video');
+});
 ```
 
+## Why FilterQ?
+
+While creating the [Hyvor Blogs Data API](), we wanted to make it possible for users to freely filter data the way they want. One obvious way to accomplish this was to add a lot of query params for each filter (Ex: `author_id`, `created_at_larger_than`, so on). It makes the API very complex with a lot of query params. And, the user can only write equal comparisons. They cannot group logics. So, we needed something like `WHERE` in SQL. However, directly exposing query's WHERE part to the users is dangerous.
+
+So, we wrote this library to make it possible to write filtering logic in an easy way (preferrably in a single line).
+
 > The library contains two classes: one for parsing single line expressions to a PHP array and the other one to building the Laravel query. If you are not using Laravel, you can use the Parser and adapt its output to your framework.
-
-
 ## Input
 
 Example: `(published_at > 1639665890 & published_at < 1639695890) | is_featured=true`
 
-An **input** is a combination of **conditions**.
-
-A condition consists of three parts:
+An **input** is a combination of **conditions**, which consists of three parts:
 
 - `key`
 - `operator`
 - `value`
 
+### - Key
+
+Usually, the key is a column name of a table. But, it can also be something else where you use a custom handler to create the `where` part in Laravel.
+
+It should match `[a-zA-Z0-9_.]+`. For example, `key`, `key_2`, `key.child` are valid.
+
 ### - Operators
+
+By default, the following operators are supported.
 
 - `=` - equals
 - `!=` - not equal
@@ -45,26 +62,34 @@ A condition consists of three parts:
 - `<` - less than
 - `>=` - greater than or equals
 - `<=` - less than or equals
-- `~` - SQL LIKE (for searching strings), supports wildcard `%`
+
+If you want to add more, see [Adding New Operators](#adding-operators).
 
 ### - Values
 
 - null: `null`
 - boolean: `true` or `false`
 - strings: `'hey'` or `hey`
-- number: `250`
+  - If you are using strings without quotes, it should match `[a-zA-Z_][a-zA-Z0-9_-]+`. 
+    - should start with a letter
+    - can contain alphanumeric characters, dashes, or underscores
+    - no spaces are allowed
+    - it cannot be `true`, `false`, or `null` (meaning will become different)
+- number: `250`, `-250`, or `2.5`
 
-### - Logical Operators
+## - Logical Operators
 
 Use logical operators to combine multiple conditions.
 
 - `&` - AND
 - `|` - OR
 
+Use `()` to group logic.
+
 
 ## Parsing
 
-Input comes as a string (For example, `"id=213|slug=hello`). We want to convert this string to a format that we can easily work with (such as arrays). The `Paser::parse()` function takes a string and converts it to an array.
+Input comes as a string (For example, `"id=213|slug=hello`). We want to convert this string to a format that we can easily work with (such as a PHP array). The `Paser::parse()` function takes a string and converts it to an array.
 
 ```php
 <?php
@@ -77,22 +102,16 @@ Here's the structure of `$conditions`:
 
 ```php
 [
-    "or" => [
-        [
-            "=": ["id", 213]
-        ],
-        [
-            "=": ["slug", "hello"]
-        ]
+    "or" => [     
+        ["id", "=", 213]
+        ["slug", "=", "hello"]
     ]
 ]
 ```
 
-This format was inspired by [JSON Logic](https://jsonlogic.com/). Simply, all logic is written as `{"operator" : ["values" ... ]}`.
-
 ## Converting to SQL (Laravel Query Builder)
 
-Converting user input to logic doesn't do much. Let's convert it to SQL via Laravel Query Builder. `Query::addConditions()` adds required `where`, `whereOr`, etc. to the query builder (or model) you provide.
+Converting user input to a PHP array doesn't do much. Let's convert it to SQL via Laravel Query Builder. `Query::addConditions()` adds required `where`, `whereOr`, etc. to a query builder (or model) you provide.
 
 ```php
 <?php
