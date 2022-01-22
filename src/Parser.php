@@ -1,11 +1,12 @@
 <?php
+
 namespace Hyvor\FilterQ;
 
 use Hyvor\FilterQ\Exceptions\ParserException;
 use Hyvor\FilterQ\Exceptions\ParserNotNumberException;
 
-class Parser {
-
+class Parser
+{
     /**
      * Saves the jsonlogic-like output
      */
@@ -16,27 +17,28 @@ class Parser {
      */
     private int $i = 0;
 
-    private CONST ERROR_AND_OR_TOGETHER = 'AND and OR cannot be combined together. Use parentheses to seperate them';
-    private CONST ERROR_NO_CLOSING_PARENTHESIS = 'Closing ) not found';
-    private CONST ERROR_NO_CLOSING_QUOTE = "Closing quote (') not found";
+    private const ERROR_AND_OR_TOGETHER = 'AND and OR cannot be combined together. Use parentheses to seperate them';
+    private const ERROR_NO_CLOSING_PARENTHESIS = 'Closing ) not found';
+    private const ERROR_NO_CLOSING_QUOTE = "Closing quote (') not found";
 
-    public function __construct(string $input) {
+    public function __construct(string $input)
+    {
 
         /**
          * Remove whitespaces
          */
         $this->input = trim($input);
-        
+
         /**
          * Add parentheses around input if not
          * This makes it possible to run the first step just like other steps
-         * 
+         *
          * We should not be fooled by something like this:
          * (free=false)|(other=true)
-         * 
+         *
          * If we just matched, ( in the begining and ) at the end, it will not suffice
          */
-        
+
         /**
          * 1. Match balanced parentheses (not global match)
          *    https://stackoverflow.com/a/35271017/9059939
@@ -57,7 +59,8 @@ class Parser {
      * This funcrtion parses anything between ()
      * It is called recursively for nested ()
      */
-    private function parseParentheses() {
+    private function parseParentheses()
+    {
 
         $this->skipWhitespaces();
 
@@ -78,7 +81,6 @@ class Parser {
         $currentLogic = null;
 
         while ($this->validateEndOfInput() && $this->input[$this->i] !== ')') {
-            
             $this->skipWhitespaces();
 
             if ($this->input[$this->i] === '(') {
@@ -89,7 +91,7 @@ class Parser {
 
             /**
              * Match the next part to see if it is a key + operator declaration
-             * 
+             *
              * ([a-zA-Z0-9_.]+) - matches and saves a key [1]
              * (?:\s+)? - matches (dont save) any spaces
              * (=|!=|>|<|>=|<=) - matches an operator [2]
@@ -97,10 +99,13 @@ class Parser {
              *      =|!=|>=|<=|>|< - default operators
              *      [!@#$%^&*~`?]{1,2} - custom operators (one or two chars)
              */
-            $matched = preg_match('/^([a-zA-Z0-9_.]+)(?:\s+)?(=|!=|>=|<=|>|<|[!@#$%^&*~`?]{1,2})/', $this->getNextPart(), $keyMatches);
+            $matched = preg_match(
+                '/^([a-zA-Z0-9_.]+)(?:\s+)?(=|!=|>=|<=|>|<|[!@#$%^&*~`?]{1,2})/',
+                $this->getNextPart(),
+                $keyMatches
+            );
 
             if ($matched) {
-
                 $fullMatch = $keyMatches[0];
                 $key = $keyMatches[1];
                 $operator = $keyMatches[2];
@@ -145,7 +150,6 @@ class Parser {
             if ($this->input[$this->i] !== ')') {
                 $this->i++;
             }
-    
         }
 
         // skip )
@@ -157,25 +161,27 @@ class Parser {
         ];
     }
 
-    private function parseValue() {
+    private function parseValue()
+    {
         $this->skipWhitespaces();
 
         return $this->parseNumber() ??
             $this->parseString() ??
             $this->parseKeyword('true', true) ??
-            $this->parseKeyword('false', false) ?? 
+            $this->parseKeyword('false', false) ??
             $this->parseKeyword('null', null);
     }
 
     /**
      * Parses a number
      */
-    private function parseNumber() : int|float|null {    
+    private function parseNumber(): int|float|null
+    {
 
         if (
             preg_match(
-                '/(^\-?\d+(?:(\.)(\d+))?)(?:[^\d]|$)/', 
-                $this->getNextPart(), 
+                '/(^\-?\d+(?:(\.)(\d+))?)(?:[^\d]|$)/',
+                $this->getNextPart(),
                 $numberMatches
             )
         ) {
@@ -192,12 +198,12 @@ class Parser {
         }
 
         return null;
-
     }
 
 
-    private function parseString() : ?string {
-        
+    private function parseString(): ?string
+    {
+
         // with quotes
         if ($this->input[$this->i] === "'") {
             $this->i++;
@@ -208,48 +214,42 @@ class Parser {
                 $this->validateEndOfInput(self::ERROR_NO_CLOSING_QUOTE) &&
                 $this->input[$this->i] !== "'"
             ) {
-
                 if ($this->input[$this->i] === "\\") {
-
                     $nextChar = $this->input[$this->i + 1];
                     if ($nextChar === "'" || $nextChar === '\\') {
                         $string .= $nextChar;
                         $this->i += 2;
                     }
-
                 } else {
                     $string .= $this->input[$this->i];
                     $this->i++;
                 }
-
             }
 
             $this->i++;
 
             return $string;
-
-        } else if (
+        } elseif (
             preg_match('/^[a-zA-Z_][a-zA-Z0-9_-]+/', $this->getNextPart(), $withoutQuotesMatches)
         ) {
-
             // without quotes
 
             $string = $withoutQuotesMatches[0];
 
-            if (in_array($string, ['true', 'false', 'null']))
+            if (in_array($string, ['true', 'false', 'null'])) {
                 return null;
+            }
 
             $this->i += strlen($string);
 
             return $string;
-
         }
 
         return null;
-
     }
 
-    private function parseKeyword($string, $value) : ?bool {
+    private function parseKeyword($string, $value): ?bool
+    {
 
         if (substr($this->input, $this->i, strlen($string)) === $string) {
             $this->i += strlen($string);
@@ -257,13 +257,13 @@ class Parser {
         }
 
         return null;
-
     }
 
     /**
      * Get the part after the cursor in the input
      */
-    private function getNextPart() {
+    private function getNextPart()
+    {
         return substr($this->input, $this->i);
     }
 
@@ -271,7 +271,8 @@ class Parser {
      * Skips whitespaces
      * Cursor placed at the next
      */
-    private function skipWhitespaces() {
+    private function skipWhitespaces()
+    {
         /**
          * No need to check the end of string, because the input is trimmed
          */
@@ -285,8 +286,9 @@ class Parser {
         }
     }
 
-    private function validateEndOfInput($error = null) {
-        
+    private function validateEndOfInput($error = null)
+    {
+
         /**
          * Check if the string is over before the next loop
          */
@@ -299,8 +301,8 @@ class Parser {
         return true;
     }
 
-    static function parse(string $input) {
+    public static function parse(string $input)
+    {
         return (new self($input))->output;
     }
-
 }

@@ -1,18 +1,20 @@
 <?php
+
 namespace Hyvor\FilterQ;
 
-class Keys {
-
+class Keys
+{
     public array $keys = [];
 
-    public function add($name) : Key {
+    public function add($name): Key
+    {
         $key = new Key($name);
         $this->keys[$name] = $key;
         return $key;
     }
 
-    public function get($name) {
+    public function get($name)
+    {
         return $this->keys[$name] ?? null;
     }
-
 }

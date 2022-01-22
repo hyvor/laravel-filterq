@@ -1,4 +1,7 @@
 <?php
+
 namespace Hyvor\FilterQ\Exceptions;
 
-class FilterQException extends \Exception {}
+class FilterQException extends \Exception
+{
+}

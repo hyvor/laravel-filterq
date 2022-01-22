@@ -1,15 +1,15 @@
 <?php
+
 namespace Hyvor\FilterQ;
 
 use Closure;
 use Hyvor\FilterQ\Exceptions\FilterQException;
 use Illuminate\Database\Eloquent\Model;
-
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 
-class FilterQ {
-
+class FilterQ
+{
     /**
      * The FilterQ expression
      */
@@ -27,7 +27,7 @@ class FilterQ {
 
     /**
      * Allowed keys
-     *  
+     *
      *  key => column_name for where
      */
     private Keys $keys;
@@ -37,17 +37,20 @@ class FilterQ {
      */
     private array $joinedKeys = [];
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->keys = new Keys();
         $this->operators = new Operators();
     }
 
-    public function expression(string $expression) {
+    public function expression(string $expression)
+    {
         $this->expression = $expression;
         return $this;
     }
 
-    public function builder(EloquentBuilder|QueryBuilder|string $builder) {
+    public function builder(EloquentBuilder|QueryBuilder|string $builder)
+    {
 
         /**
          * Convert model to EloquentBuilder
@@ -63,21 +66,24 @@ class FilterQ {
         $this->builder = $builder;
         return $this;
     }
-    
-    public function keys(Closure $closure) : FilterQ {
+
+    public function keys(Closure $closure): FilterQ
+    {
         $closure($this->keys);
         return $this;
     }
 
-    public function operators(Closure $closure) : FilterQ {
+    public function operators(Closure $closure): FilterQ
+    {
         $closure($this->operators);
         return $this;
     }
 
 
-    public function addWhere() : EloquentBuilder|QueryBuilder {
+    public function addWhere(): EloquentBuilder|QueryBuilder
+    {
 
-        $parsed = Parser::parse($this->expression, $this->operators); 
+        $parsed = Parser::parse($this->expression, $this->operators);
 
        // dd($parsed);
         /**
@@ -89,28 +95,27 @@ class FilterQ {
          * ]
          */
 
-        $this->builder->where(function($query) use ($parsed) {
+        $this->builder->where(function ($query) use ($parsed) {
             $this->addWhereToQuery($query, $parsed);
         });
 
         return $this->builder;
     }
 
-    private function addWhereToQuery($query, $logicChunk) {
+    private function addWhereToQuery($query, $logicChunk)
+    {
 
         $type = isset($logicChunk['or']) ? 'or' : 'and';
         $logicChunkWhere = $type === 'and' ? 'where' : 'orWhere';
 
         foreach ($logicChunk[$type] as $condition) {
-
             if (isset($condition['and']) || isset($condition['or'])) {
                 /**
                  * Logical condition (AND|OR)
                  */
-                $query->{$logicChunkWhere}(function($q) use ($condition) {
+                $query->{$logicChunkWhere}(function ($q) use ($condition) {
                     $this->addWhereToQuery($q, $condition);
                 });
-    
             } else {
 
                 /**
@@ -121,7 +126,7 @@ class FilterQ {
                 $value = $condition[2];
 
                 /**
-                 * 
+                 *
                  */
                 $keyInst = $this->keys->get($key);
 
@@ -160,7 +165,7 @@ class FilterQ {
                  */
                 if ($join) {
                     /**
-                     * Make sure a join of a key is only run one time 
+                     * Make sure a join of a key is only run one time
                      * even there are multiple usages in the logic
                      */
                     if (!in_array($key, $this->joinedKeys)) {
@@ -170,12 +175,7 @@ class FilterQ {
                 }
 
                 $query->{$logicChunkWhere}($column, $sqlOperator, $value);
-    
             }
-
-        }        
-
+        }
     }
-
-
 }

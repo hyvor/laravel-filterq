@@ -1,12 +1,13 @@
 <?php
+
 namespace Hyvor\FilterQ;
 
 use Closure;
 use Hyvor\FilterQ\Exceptions\FilterQException;
 use Illuminate\Database\Query\Expression;
 
-class Key {
-
+class Key
+{
     private string $name; // key name
     private string $column; // where column name
     private ?Closure $join = null;
@@ -14,7 +15,8 @@ class Key {
     private ?array $includedOperators = null;
     private ?array $excludedOperators = null;
 
-    public function __construct($name) {
+    public function __construct($name)
+    {
 
         if (!preg_match('/^[a-zA-Z0-9_.]+$/', $name)) {
             throw new FilterQException("Invalid key name: $name");
@@ -27,12 +29,14 @@ class Key {
     /**
      * string or DB::raw()
      */
-    public function column(string|Expression $column) {
+    public function column(string|Expression $column)
+    {
         $this->column = $column;
         return $this;
     }
 
-    public function operators(string|array $operators, bool $exclude = false) {
+    public function operators(string|array $operators, bool $exclude = false)
+    {
         if (is_string($operators)) {
             $operators = explode(',', $operators);
         }
@@ -45,9 +49,10 @@ class Key {
         return $this;
     }
 
-    public function join(array|Closure $join) {
+    public function join(array|Closure $join)
+    {
         if (is_array($join)) {
-            $join = function($query) use ($join) {
+            $join = function ($query) use ($join) {
                 $query->join($join[0], $join[1], $join[2], $join[3]);
             };
         }
@@ -55,17 +60,20 @@ class Key {
         return $this;
     }
 
-    public function getColumnName() {
+    public function getColumnName()
+    {
         return $this->column ?? $this->name;
     }
-    public function getJoin() {
+    public function getJoin()
+    {
         return $this->join;
     }
-    public function getIncludedOperators() {
+    public function getIncludedOperators()
+    {
         return $this->includedOperators;
     }
-    public function getExcludedOperators() {
+    public function getExcludedOperators()
+    {
         return $this->excludedOperators;
     }
-
 }
