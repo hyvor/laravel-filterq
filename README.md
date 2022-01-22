@@ -1,26 +1,13 @@
 ## Introduction
 
-FilterQ is a library to allow your API consumers to write the `WHERE` part of a SQL query in a single HTTP GET parameter.
+FilterQ allows advanced filtering in Laravel APIs. FilterQ was created for [Hyvor Blogs Data API]() to allow users to filter data the way **THEY WANT** using nested logic, just like they have access to `WHERE` in the SQL query.
 
-They send a `filter` input like this.
-```
-id=213&slug=hello
-```
-
-And, FilterQ securely converts it to `WHERE` in Laravel Query Builder.
-```php
-->where('id', 213)
-->where('slug', 'hello');
-```
-
-FilterQ supports `AND`, `OR`, and grouping logics, which makes it extremely powerful. It's like making it possible for your API consumers to filter data directly via SQL. To do that, they can directly use the column names of your table or you can even define custom handlers to do operations like joins!
-
+You can get a single `filter` input like this in your APIs.
 ```
 name=starter&(type=image|type=video)
 ```
 
-Converts to:
-
+And, FilterQ securely converts it to `WHERE` in Laravel Query Builder.
 ```php
 ->where('name', 'starter')
 ->where(function($query) {
@@ -29,18 +16,28 @@ Converts to:
 });
 ```
 
-## Why FilterQ?
+FilterQ supports `AND`, `OR`, and grouping logics, which makes it extremely powerful. It's like making it possible for your API consumers to filter data directly using SQL, but securely.
 
-While creating the [Hyvor Blogs Data API](), we wanted to make it possible for users to freely filter data the way they want. One obvious way to accomplish this was to add a lot of query params for each filter (Ex: `author_id`, `created_at_larger_than`, so on). It makes the API very complex with a lot of query params. And, the user can only write equal comparisons. They cannot group logics. So, we needed something like `WHERE` in SQL. However, directly exposing query's WHERE part to the users is dangerous.
+### Features
 
-So, we wrote this library to make it possible to write filtering logic in an easy way (preferrably in a single line).
+* Easy-to-write, single-line expressions. Peace of mind for your API users.
+* Logical expressions and nesting (`&` - AND, `|` - OR, `()`)
+* Secure. FilterQ only gives access to the columns and operators you define.
+* Supports joining tables. Users can not only filter by columns but also via joined tables (Amazing, right?)
+* Extensible. You can add your own operators easily.
 
 > The library contains two classes: one for parsing single line expressions to a PHP array and the other one to building the Laravel query. If you are not using Laravel, you can use the Parser and adapt its output to your framework.
-## Input
+## FilterQ Expressions
 
 Example: `(published_at > 1639665890 & published_at < 1639695890) | is_featured=true`
 
-An **input** is a combination of **conditions**, which consists of three parts:
+A **FitlerQ Expression** is a combination of **conditions**, connected and grouped by the following.
+
+- `&` - AND
+- `|` - OR
+- `()` - to group logic
+
+A condition has three parts:
 
 - `key`
 - `operator`
@@ -63,7 +60,7 @@ By default, the following operators are supported.
 - `>=` - greater than or equals
 - `<=` - less than or equals
 
-If you want to add more, see [Adding New Operators](#adding-operators).
+If you want to add more operators (ex: an operator for SQL `LIKE`), see [Adding New Operators](#adding-operators).
 
 ### - Values
 
@@ -77,15 +74,35 @@ If you want to add more, see [Adding New Operators](#adding-operators).
     - it cannot be `true`, `false`, or `null` (meaning will become different)
 - number: `250`, `-250`, or `2.5`
 
-## - Logical Operators
+## Basic Usage
 
-Use logical operators to combine multiple conditions.
+```php
+use Hyvor\FilterQ\Facades\FilterQ;
 
-- `&` - AND
-- `|` - OR
+$query = FilterQ::expression('id=100|slug=hello') // FilterQ expression (usually from $request->input('filter'))
+    ->builder(Post::class) // model
+    ->keys(function($keys) { // set keys
+        $keys->add('id')->column('posts.id');
+        $keys->add('slug');
+        $keys->add('author.name')
+            ->column('authors.name')
+            ->join('left', 'authors', 'authors.id', '=', 'posts.author_id');
+    })
+    ->addWhere();
 
-Use `()` to group logic.
+$posts = $query
+    ->limit(25)
+    ->orderBy('id', 'DESC')
+    ->get();
+```
 
+* `expression()` sets the FilterQ expression
+* `builder()` sets the Laravel Query
+* `keys()` takes a closure that sets the supported keys for filtering. 
+  * `$keys->add($key)` registers a key and returns a `Hyvor\FilterQ\Key` object, which you can chain to add more options
+  * `Key::column()` sets the column name. If this is not called, FilterQ assumes that the key name is the column name. If you use joins, it is useful to define the column name to avoid column name ambiguity.
+  * `Key::join($joinType, $joinTable, $)` sets a join. 
+* `addWhere()` should be called finally. It returns the query builder, which now has the `where()` statements based on the provided FilterQ expression. You can then do other operations (`limit`, `orderBy`, and even more `where` statements) and call `get()` to get results.
 
 ## Parsing
 

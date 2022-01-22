@@ -11,10 +11,9 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
 class FilterQ {
 
     /**
-     * The input string
-     * contains the logic
+     * The FilterQ expression
      */
-    private string $input;
+    private string $expression;
 
     /**
      * The builder which we add where statements to
@@ -24,7 +23,7 @@ class FilterQ {
     /**
      * Supported operators globally (when key-level operators are not set)
      */
-    private array $operators = ['=', '!=', '<', '>', '<=', '>=', '~'];
+    private Operators $operators;
 
     /**
      * Allowed keys
@@ -40,10 +39,11 @@ class FilterQ {
 
     public function __construct() {
         $this->keys = new Keys();
+        $this->operators = new Operators();
     }
 
-    public function input(string $input) {
-        $this->input = $input;
+    public function expression(string $expression) {
+        $this->expression = $expression;
         return $this;
     }
 
@@ -69,15 +69,15 @@ class FilterQ {
         return $this;
     }
 
-    public function operators(string|array $operators, bool $not = false) : FilterQ {
-        
+    public function operators(Closure $closure) : FilterQ {
+        $closure($this->operators);
         return $this;
     }
 
 
     public function addWhere() : EloquentBuilder|QueryBuilder {
 
-        $parsed = Parser::parse($this->input, $this->operators); 
+        $parsed = Parser::parse($this->expression, $this->operators); 
 
        // dd($parsed);
         /**
@@ -136,6 +136,26 @@ class FilterQ {
                 $join = $keyInst->getJoin();
 
                 /**
+                 * Check if the operator is valid
+                 */
+                $sqlOperator = $this->operators->get($operator);
+                if (!$sqlOperator) {
+                    throw new FilterQException("Operator '$operator' not supported for filtering (with $key)");
+                }
+
+                /**
+                 * Check if the operator is allowed in the key
+                 */
+                $includedOperators = $keyInst->getIncludedOperators();
+                $excludedOperators = $keyInst->getExcludedOperators();
+                if (
+                    ($includedOperators !== null && !in_array($operator, $includedOperators)) ||
+                    ($excludedOperators !== null && in_array($operator, $excludedOperators))
+                ) {
+                    throw new FilterQException("Operator '$operator' is not allowed for filtering (with $key)");
+                }
+
+                /**
                  * Join a table
                  */
                 if ($join) {
@@ -149,7 +169,7 @@ class FilterQ {
                     }
                 }
 
-                $query->{$logicChunkWhere}($column, $operator, $value);
+                $query->{$logicChunkWhere}($column, $sqlOperator, $value);
     
             }
 

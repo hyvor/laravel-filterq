@@ -2,16 +2,24 @@
 namespace Hyvor\FilterQ;
 
 use Closure;
+use Hyvor\FilterQ\Exceptions\FilterQException;
 use Illuminate\Database\Query\Expression;
 
 class Key {
 
     private string $name; // key name
     private string $column; // where column name
-    private array $operators; // operators
     private ?Closure $join = null;
 
+    private ?array $includedOperators = null;
+    private ?array $excludedOperators = null;
+
     public function __construct($name) {
+
+        if (!preg_match('/^[a-zA-Z0-9_.]+$/', $name)) {
+            throw new FilterQException("Invalid key name: $name");
+        }
+
         $this->name = $name;
         return $this;
     }
@@ -24,11 +32,19 @@ class Key {
         return $this;
     }
 
-    public function operators($operators) {
-        $this->operators = $operators;
+    public function operators(string|array $operators, bool $exclude = false) {
+        if (is_string($operators)) {
+            $operators = explode(',', $operators);
+        }
+
+        if ($exclude) {
+            $this->excludedOperators = $operators;
+        } else {
+            $this->includedOperators = $operators;
+        }
         return $this;
     }
-    
+
     public function join(array|Closure $join) {
         if (is_array($join)) {
             $join = function($query) use ($join) {
@@ -44,6 +60,12 @@ class Key {
     }
     public function getJoin() {
         return $this->join;
+    }
+    public function getIncludedOperators() {
+        return $this->includedOperators;
+    }
+    public function getExcludedOperators() {
+        return $this->excludedOperators;
     }
 
 }

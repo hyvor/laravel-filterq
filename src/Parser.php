@@ -93,8 +93,11 @@ class Parser {
              * ([a-zA-Z0-9_.]+) - matches and saves a key [1]
              * (?:\s+)? - matches (dont save) any spaces
              * (=|!=|>|<|>=|<=) - matches an operator [2]
+             * (=|!=|>=|<=|>|<|[!@#$%^&*~`?]{1,2}) - matches an operator [2]
+             *      =|!=|>=|<=|>|< - default operators
+             *      [!@#$%^&*~`?]{1,2} - custom operators (one or two chars)
              */
-            $matched = preg_match('/^([a-zA-Z0-9_.]+)(?:\s+)?(=|!=|>=|<=|>|<|~)/', $this->getNextPart(), $keyMatches);
+            $matched = preg_match('/^([a-zA-Z0-9_.]+)(?:\s+)?(=|!=|>=|<=|>|<|[!@#$%^&*~`?]{1,2})/', $this->getNextPart(), $keyMatches);
 
             if ($matched) {
 

@@ -5,7 +5,7 @@ class Keys {
 
     public array $keys = [];
 
-    public function add($name) {
+    public function add($name) : Key {
         $key = new Key($name);
         $this->keys[$name] = $key;
         return $key;
