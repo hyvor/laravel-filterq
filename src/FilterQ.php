@@ -1,14 +1,14 @@
 <?php
 namespace Hyvor\FilterQ;
 
-use Illuminate\Database\Query\Builder;
+use Closure;
+use Hyvor\FilterQ\Exceptions\FilterQException;
+use Illuminate\Database\Eloquent\Model;
+
+use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 
 class FilterQ {
-
-    /**
-     * Allowed keys
-     */
-    private $keys = [];
 
     /**
      * The input string
@@ -19,54 +19,64 @@ class FilterQ {
     /**
      * The builder which we add where statements to
      */
-    private Builder $builder;
+    private EloquentBuilder|QueryBuilder $builder;
 
     /**
-     * [
-     *  '=' => '='
-     * ]
-     * key = the operator in the logical expression
-     * value = the SQL operator that it converts to
+     * Supported operators globally (when key-level operators are not set)
      */
-    private array $operators = [
-        '=' => '=',
-        '!=' => '!=',
-        '>' => '>',
-        '<' => '<',
-        '>=' => '>=',
-        '<=' => '<=',
-    ];
+    private array $operators = ['=', '!=', '<', '>', '<=', '>=', '~'];
+
+    /**
+     * Allowed keys
+     *  
+     *  key => column_name for where
+     */
+    private Keys $keys;
+
+    /**
+     * To make sure a key's join is only run one time
+     */
+    private array $joinedKeys = [];
+
+    public function __construct() {
+        $this->keys = new Keys();
+    }
 
     public function input(string $input) {
         $this->input = $input;
         return $this;
     }
 
-    public function builder(Builder $builder) {
+    public function builder(EloquentBuilder|QueryBuilder|string $builder) {
+
+        /**
+         * Convert model to EloquentBuilder
+         */
+        if (is_string($builder) && is_subclass_of($builder, Model::class)) {
+            $builder = $builder::query();
+        }
+
+        if (!($builder instanceof EloquentBuilder || $builder instanceof QueryBuilder)) {
+            throw new FilterQException('Builder must be an instanceof Eloquent or Query builder');
+        }
+
         $this->builder = $builder;
         return $this;
     }
-
-    public function addOperator(string $operator, string $sqlOperator) {
-        $this->operators[$operator] = $sqlOperator;
-
+    
+    public function keys(Closure $closure) : FilterQ {
+        $closure($this->keys);
         return $this;
     }
 
-    public function removeOperators(string $operator) {
-        if (isset($this->operators[$operator])) {
-            unset($this->operators[$operator]);
-        }
-        return $this;
-    }
-
-    public function setOperators(array $operators) {
-        $this->operators = $operators;
+    public function operators(string|array $operators, bool $not = false) : FilterQ {
+        
         return $this;
     }
 
 
-    public function addWhere() {
+    public function addWhere() : EloquentBuilder|QueryBuilder {
+
         $parsed = Parser::parse($this->input, $this->operators); 
 
        // dd($parsed);
@@ -106,12 +116,40 @@ class FilterQ {
                 /**
                  * Comparison condition
                  */
-
                 $key = $condition[0];
                 $operator = $condition[1];
                 $value = $condition[2];
 
-                $query->{$logicChunkWhere}($key, $operator, $value);
+                /**
+                 * 
+                 */
+                $keyInst = $this->keys->get($key);
+
+                /**
+                 * Only supported keys can be used
+                 */
+                if ($keyInst === null) {
+                    throw new FilterQException("Key '$key' is not supported for filtering");
+                }
+
+                $column = $keyInst->getColumnName();
+                $join = $keyInst->getJoin();
+
+                /**
+                 * Join a table
+                 */
+                if ($join) {
+                    /**
+                     * Make sure a join of a key is only run one time 
+                     * even there are multiple usages in the logic
+                     */
+                    if (!in_array($key, $this->joinedKeys)) {
+                        $join($this->builder);
+                        $this->joinedKeys[] = $key;
+                    }
+                }
+
+                $query->{$logicChunkWhere}($column, $operator, $value);
     
             }
 

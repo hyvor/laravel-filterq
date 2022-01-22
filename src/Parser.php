@@ -94,7 +94,7 @@ class Parser {
              * (?:\s+)? - matches (dont save) any spaces
              * (=|!=|>|<|>=|<=) - matches an operator [2]
              */
-            $matched = preg_match('/^([a-zA-Z0-9_.]+)(?:\s+)?(=|!=|>=|<=|>|<)/', $this->getNextPart(), $keyMatches);
+            $matched = preg_match('/^([a-zA-Z0-9_.]+)(?:\s+)?(=|!=|>=|<=|>|<|~)/', $this->getNextPart(), $keyMatches);
 
             if ($matched) {
 
