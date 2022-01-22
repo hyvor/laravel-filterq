@@ -10,7 +10,7 @@
         }
     ],
     "autoload": {
-        "psr-4": { 
+        "psr-4": {
             "Hyvor\\FilterQ\\": "src/"
         }
     },
@@ -29,5 +29,8 @@
                 "Hyvor\\FilterQ\\FilterQServiceProvider"
             ]
         }
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit"
     }
 }

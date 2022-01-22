@@ -2,35 +2,48 @@
 namespace Hyvor\FilterQ\Tests\Unit;
 
 use Hyvor\FilterQ\Facades\FilterQ;
-use Hyvor\FilterQ\Tests\PostModel;
+use Hyvor\FilterQ\Tests\TestModel;
 use Hyvor\FilterQ\Tests\TestCase;
 use Illuminate\Support\Facades\DB;
 
 class FilterQTest extends TestCase {
 
-    public function test() {
+    public function testBasic() {
 
-        $query = FilterQ::expression('(author.name=12|author.name~20)&id=12093&slug=12kj')
-            ->builder(PostModel::class)
+        $filterQ = FilterQ::expression('id=1|slug=hello')
+            ->builder(TestModel::class)
             ->keys(function($keys) {
-
-                $keys->add('author.name')
-                    ->column('authors.name')
-                    ->operators('~', true)
-                    ->join(['authors', 'authors.id', '=', 'posts.author_id']);
-
-                $keys->add('id')->column(DB::raw('posts.id'));
+                $keys->add('id');
                 $keys->add('slug');
-
-            })
-            ->operators(function ($operators) {
-
-                $operators->add('~', 'LIKE');
-            
             })
             ->addWhere();
 
-        $query->dd();
+        $q = TestModel::where(function($query) {
+            $query->where('id', 1)
+                ->orWhere('slug', 'hello');
+        });
+
+        $this->assertEquals($filterQ->toSql(), $q->toSql());
+
+    }
+
+    public function testJoin() {
+
+        $filterQ = FilterQ::expression('author.name=test')
+            ->builder(TestModel::class)
+            ->keys(function($keys) {
+                $keys->add('author.name')
+                    ->column('authors.name')
+                    ->join(function());
+            })
+            ->addWhere();
+
+        $q = TestModel::where(function($query) {
+            $query->where('id', 1)
+                ->orWhere('slug', 'hello');
+        });
+
+        $this->assertEquals($filterQ->toSql(), $q->toSql());
 
     }
 
