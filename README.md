@@ -85,7 +85,7 @@ If you want to add more operators (ex: an operator for SQL `LIKE`), see [Adding 
 # Basic Usage
 
 ```
-composer install hyvor/laravel-filterq
+composer require hyvor/laravel-filterq
 ```
 
 ```php

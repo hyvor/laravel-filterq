@@ -43,9 +43,9 @@ class FilterQ
         $this->operators = new Operators();
     }
 
-    public function expression(string $expression)
+    public function expression(?string $expression)
     {
-        $this->expression = $expression;
+        $this->expression = trim($expression ?? '');
         return $this;
     }
 
@@ -82,6 +82,10 @@ class FilterQ
 
     public function addWhere(): EloquentBuilder|QueryBuilder
     {
+
+        if (empty($this->expression)) {
+            return $this->builder;
+        }
 
         $parsed = Parser::parse($this->expression, $this->operators);
 

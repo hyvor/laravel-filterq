@@ -9,6 +9,23 @@ use Illuminate\Support\Facades\DB;
 
 class FilterQTest extends TestCase {
 
+    public function testEmpty() {
+
+        $filterQ = FilterQ::expression(null)
+            ->builder(TestModel::class)
+            ->addWhere();
+
+        $filterQ2 = FilterQ::expression('')
+            ->builder(TestModel::class)
+            ->addWhere();
+        
+        $q = TestModel::query();
+
+        $this->assertEquals($filterQ->toSql(), $q->toSql());
+        $this->assertEquals($filterQ2->toSql(), $q->toSql());
+
+    }
+
     public function testWithModel() {
 
         $filterQ = FilterQ::expression('id=1|slug=hello')
