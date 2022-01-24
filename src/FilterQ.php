@@ -145,7 +145,7 @@ class FilterQ
                  */
                 $sqlOperator = $this->operators->get($operator);
                 if (!$sqlOperator) {
-                    throw new FilterQException("Operator '$operator' not supported for filtering (with $key)");
+                    throw new FilterQException("Operator '$operator' not supported for filtering");
                 }
 
                 /**
@@ -174,7 +174,27 @@ class FilterQ
                     }
                 }
 
-                $query->{$logicChunkWhere}($column, $sqlOperator, $value);
+                if (is_callable($sqlOperator)) {
+
+                    /**
+                     * Operator set to callback to do things like whereRaw
+                     * Now user has to handle the where operation.
+                     * If not handled correctly, it can completely break the SQL query
+                     */
+                    $sqlOperator(
+                        $query,
+                        $type, // or|and
+                        $value,
+                    );
+
+                } else {
+                    
+                    /**
+                     * We handle the where
+                     */
+                    $query->{$logicChunkWhere}($column, $sqlOperator, $value);
+
+                }
             }
         }
     }

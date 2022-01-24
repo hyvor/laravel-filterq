@@ -2,6 +2,8 @@
 
 namespace Hyvor\FilterQ;
 
+use Closure;
+
 class Operators
 {
     private array $operators = [];
@@ -17,7 +19,7 @@ class Operators
         $this->add('>=');
     }
 
-    public function add(string $operator, ?string $sqlOperator = null)
+    public function add(string $operator, null|string|Closure $sqlOperator = null)
     {
         $this->operators[$operator] = $sqlOperator ?? $operator;
     }

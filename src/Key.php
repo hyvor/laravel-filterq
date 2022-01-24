@@ -49,13 +49,17 @@ class Key
         return $this;
     }
 
-    public function join(array|Closure $join)
+    public function join(...$joinParams)
     {
-        if (is_array($join)) {
-            $join = function ($query) use ($join) {
-                $query->join($join[0], $join[1], $join[2], $join[3]);
+
+        $join = $joinParams[0];
+        
+        if (!is_callable($join)) {
+            $join = function ($query) use ($joinParams) {
+                $query->join(...$joinParams);
             };
         }
+
         $this->join = $join;
         return $this;
     }

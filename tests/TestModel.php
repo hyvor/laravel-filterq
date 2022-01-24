@@ -5,7 +5,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class TestModel extends Model {
 
-    protected $table = 'authors';
+    protected $table = 'posts';
     protected $guarded = [];
 
 }
