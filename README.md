@@ -82,8 +82,11 @@ If you want to add more operators (ex: an operator for SQL `LIKE`), see [Adding 
     - no spaces are allowed
     - it cannot be `true`, `false`, or `null` (meaning will become different)
 - number: `250`, `-250`, or `2.5`
-
 # Basic Usage
+
+```
+composer install hyvor/laravel-filterq
+```
 
 ```php
 use Hyvor\FilterQ\Facades\FilterQ;
