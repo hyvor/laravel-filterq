@@ -154,74 +154,27 @@ class Key
     }
 
     /**
-     * @template T
-     * @param T $value
-     * @return T|Carbon
-     * @throws InvalidValueException
+     * @return string
      */
-    public function validateAndSanitizeValue(mixed $value)
+    public function getName(): string
     {
-
-        if (is_array($this->supportedValues)) {
-
-            if (!in_array($value, $this->supportedValues)) {
-                $values = implode(', ', $this->supportedValues);
-                throw new InvalidValueException(
-                    "The key $this->name only supports the following values for filtering: $values. '$value' given"
-                );
-            }
-
-        }
-
-        if (is_array($this->supportedValueTypes)) {
-
-            $isValid = false;
-
-            $valueType = gettype($value);
-
-            foreach ($this->supportedValueTypes as $supportedValueType) {
-
-                if (
-                    // scalar
-                    ($supportedValueType === 'int' && $valueType === 'integer') ||
-                    ($supportedValueType === 'float' && $valueType === 'double') ||
-                    ($supportedValueType === 'string' && $valueType === 'string') ||
-                    ($supportedValueType === 'bool' && $valueType === 'boolean') ||
-                    ($supportedValueType === 'null' && $valueType === 'NULL') ||
-
-                    // functions
-                    ($supportedValueType === 'numeric' && is_numeric($value))
-                ) {
-
-                    $isValid = true;
-                    break;
-
-                } else if ($supportedValueType === 'date') {
-
-                    // Check if the date is valid
-                    $date = strtotime($value);
-
-                    if ($date !== false) {
-                        $isValid = true;
-                        // update value to carbon date
-                        $value = Carbon::createFromTimestamp($date);
-                        break;
-                    }
-
-                }
-
-            }
-
-            if (!$isValid) {
-                $validTypesString = implode('|', $this->supportedValueTypes);
-                throw new InvalidValueException("Value for $this->name should be one of: $validTypesString");
-            }
-
-        }
-
-        return $value;
-
+        return $this->name;
     }
 
+    /**
+     * @return mixed[]|null
+     */
+    public function getSupportedValues(): ?array
+    {
+        return $this->supportedValues;
+    }
+
+    /**
+     * @return string[]|null
+     */
+    public function getSupportedValueTypes(): ?array
+    {
+        return $this->supportedValueTypes;
+    }
 
 }

@@ -275,7 +275,7 @@ Scalar:
 Special:
 
 * `numeric` - int, float, or numeric string (uses PHP's [is_numeric](https://www.php.net/manual/en/function.is-numeric.php))
-* `date` - A valid date/time string for PHP's [strtotime](https://www.php.net/manual/en/function.strtotime.php) function.
+* `date` - A valid date/time string or an integer UNIX timestamp. (PHP's [strtotime](https://www.php.net/manual/en/function.strtotime.php) function is used to parse, therefore relative dates like "-7 days" are supported).
 
 You may specify multiple types using the `|` character or by sending an array.
 
@@ -293,18 +293,17 @@ It is possible to set what values are supported for a key. This is mostly useful
 FilterQ::expression(...)
     ->builder(...)
     ->keys(function($keys) {
+    
+        // allows either published or draft
+        $keys->add('status')->values(['published', 'draft']); 
 
         // only 200 is allowed
-        $keys->add('id')->value(200);
-
-        // allows either published or draft
-        $keys->add('status')->value(['published', 'draft']); 
+        $keys->add('id')->values(200);
 
     });
 ```
 
-
-## Registering Custom Operators
+## Registering Custom Operators {#adding-operators}
 
 What if you wanted to support SQL `LIKE`? You can register a custom operator (here you are extending the FilterQ expressions language).
 
@@ -318,8 +317,8 @@ FilterQ::expression(...)
 ```
 
 * `$operators->add($filterQOperator, $sqlOperator)`
-  * `$filterQOperator` should match this regex: ``[!@#$%^&*~`?]{1,2}``. In simple terms, you can use these special characters (`!` `@` `#` `$` `%` `^` `&` `*` `~` `?`) one or two times as an operator.
-  * `$sqlOperator` is its corresponding SQL operator.
+* `$filterQOperator` should match this regex: ``[!@#$%^&*~`?]{1,2}``. In simple terms, you can use these special characters (`!` `@` `#` `$` `%` `^` `&` `*` `~` `?`) one or two times as an operator.
+* `$sqlOperator` is its corresponding SQL operator.
 
 Let's see an example.
 
