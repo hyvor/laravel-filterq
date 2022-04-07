@@ -18,7 +18,7 @@ class ValueValidatorTest extends TestCase
 
         $validated = ValueValidator::validate($key, 250);
 
-        $this->assertEquals($validated, 250);
+        $this->assertEquals(250, $validated);
 
     }
 
@@ -39,7 +39,7 @@ class ValueValidatorTest extends TestCase
         $value = ValueValidator::validate($key, 'some string');
 
 
-        $this->assertEquals($value, 'some string');
+        $this->assertEquals('some string', $value);
     }
 
     public function test_key_value_type_string_wrong() {
@@ -59,7 +59,7 @@ class ValueValidatorTest extends TestCase
         $key->valueType('int');
         $value = ValueValidator::validate($key, 200);
 
-        $this->assertEquals($value, 200);
+        $this->assertEquals(200, $value);
 
     }
 
@@ -81,7 +81,7 @@ class ValueValidatorTest extends TestCase
         $key->valueType('float');
         $value = ValueValidator::validate($key, 20.0);
 
-        $this->assertEquals($value, 20.0);
+        $this->assertEquals(20.0, $value);
 
     }
 
@@ -102,9 +102,9 @@ class ValueValidatorTest extends TestCase
         $key = new Key('test');
         $key->valueType('numeric');
 
-        $this->assertEquals(ValueValidator::validate($key, 20), 20);
-        $this->assertEquals(ValueValidator::validate($key, '20'), '20');
-        $this->assertEquals(ValueValidator::validate($key, 20.2), 20.2);
+        $this->assertEquals(20, ValueValidator::validate($key, 20));
+        $this->assertEquals('20', ValueValidator::validate($key, '20'));
+        $this->assertEquals(20.2, ValueValidator::validate($key, 20.2));
 
     }
 
@@ -125,8 +125,8 @@ class ValueValidatorTest extends TestCase
         $key = new Key('test');
         $key->valueType('bool');
 
-        $this->assertEquals(ValueValidator::validate($key, true), true);
-        $this->assertEquals(ValueValidator::validate($key, false), false);
+        $this->assertEquals(true, ValueValidator::validate($key, true));
+        $this->assertEquals(false, ValueValidator::validate($key, false));
 
     }
 
@@ -147,7 +147,7 @@ class ValueValidatorTest extends TestCase
         $key = new Key('test');
         $key->valueType('null');
 
-        $this->assertEquals(ValueValidator::validate($key, null), null);
+        $this->assertEquals(null, ValueValidator::validate($key, null));
 
     }
 
@@ -168,7 +168,9 @@ class ValueValidatorTest extends TestCase
         $key = new Key('test');
         $key->valueType('date');
 
-        $this->assertEquals(ValueValidator::validate($key, '2020-02-10'), Carbon::parse('2020-02-10'));
+        $date = Carbon::parse('2020-02-10');
+
+        $this->assertEquals($date, ValueValidator::validate($key, '2020-02-10'));
 
     }
 
@@ -178,7 +180,9 @@ class ValueValidatorTest extends TestCase
         $key = new Key('test');
         $key->valueType('date');
 
-        $this->assertEquals(ValueValidator::validate($key, 'yesterday'), Carbon::parse('yesterday'));
+        $date = Carbon::parse('yesterday');
+
+        $this->assertEquals($date, ValueValidator::validate($key, 'yesterday'));
 
     }
 
@@ -191,7 +195,9 @@ class ValueValidatorTest extends TestCase
         $key = new Key('test');
         $key->valueType('date');
 
-        $this->assertEquals(ValueValidator::validate($key, 1649358544), Carbon::createFromTimestamp(1649358544));
+        $date = Carbon::createFromTimestamp(1649358544);
+
+        $this->assertEquals($date, ValueValidator::validate($key, 1649358544));
 
     }
 
@@ -212,7 +218,7 @@ class ValueValidatorTest extends TestCase
         $key = new Key('test');
         $key->valueType('date|null');
 
-        $this->assertEquals(ValueValidator::validate($key, null), null);
+        $this->assertEquals(null, ValueValidator::validate($key, null));
 
     }
 
@@ -233,7 +239,7 @@ class ValueValidatorTest extends TestCase
         $key = new Key('test');
         $key->valueType(['int', 'string']);
 
-        $this->assertEquals(ValueValidator::validate($key, 'string'), 'string');
+        $this->assertEquals('string', ValueValidator::validate($key, 'string'));
 
     }
 

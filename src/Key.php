@@ -46,7 +46,7 @@ class Key
     }
 
     /**
-     * string or DB::raw()
+     * @param string|Expression $column
      */
     public function column(string|Expression $column) : self
     {
@@ -96,22 +96,9 @@ class Key
 
         $types = is_string($type) ? explode('|', $type) : $type;
 
-        $validTypes = [
-            // scalar
-            'int',
-            'float',
-            'string',
-            'null',
-            'bool',
-
-            // other
-            'numeric',
-            'date',
-        ];
-
         foreach ($types as $type) {
 
-            if (!in_array($type, $validTypes)) {
+            if (!in_array($type, ValueValidator::SUPPORTED_VALUES)) {
                 throw new FilterQException("Key type $type is not supported");
             }
 
@@ -140,14 +127,23 @@ class Key
     {
         return $this->column ?? $this->name;
     }
+
     public function getJoin() : ?callable
     {
         return $this->join;
     }
+
+    /**
+     * @return null|string[]
+     */
     public function getIncludedOperators() : ?array
     {
         return $this->includedOperators;
     }
+
+    /**
+     * @return null|string[]
+     */
     public function getExcludedOperators() : ?array
     {
         return $this->excludedOperators;

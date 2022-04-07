@@ -8,6 +8,22 @@ class ValueValidator
 {
 
     /**
+     * @var string[]
+     */
+    const SUPPORTED_VALUES = [
+        // scalar
+        'int',
+        'float',
+        'string',
+        'null',
+        'bool',
+
+        // other
+        'numeric',
+        'date',
+    ];
+
+    /**
      * @template T
      * @param T $value
      * @return T|Carbon
