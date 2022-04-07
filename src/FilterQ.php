@@ -89,12 +89,12 @@ class FilterQ
 
         $parsed = Parser::parse($this->expression, $this->operators);
 
-       // dd($parsed);
         /**
-         * Logic chunk = [
-         *  'type' => and|or
-         *  'conditions' => [
-         *      ['key', '=', 'value']
+         * 
+         * $parsed = [
+         *  'or' => [
+         *      ['id', '=', 1],
+         *      ['slug', '=', 'hello']
          *  ]
          * ]
          */
