@@ -221,6 +221,89 @@ $keys->add(...)
     });
 ```
 
+
+
+If someone tries use a non-defined or remove operator, an error will be thrown. See Exception handling below for more details on errors.
+
+## Key Operators
+
+It is possible (and recommended) to define what operators are allowed for each key.
+
+```php
+FilterQ::expression(...)
+    ->builder(...)
+    ->keys(function($keys) {
+        // only these operators will be allowed (comma-separated string)
+        $keys->add('id')->operators('=,>,<');
+
+        // or use an array
+        $keys->add('slug')->operators(['=', '!=']);
+
+        // exclude operators (use true as the second param)
+        $keys->add('age')->operators('>', true);
+    })
+    ->addWhere();
+```
+
+## Key Value Types
+
+It is possible (and recommended) to define what values types are supported by a key.
+
+```php
+FilterQ::expression(...)
+    ->builder(...)
+    ->keys(function($keys) {
+
+        $keys->add('id')->valueType('integer');
+        $keys->add('name')->valueType('string');
+        $keys->add('description')->valueType('string|null');
+        $keys->add('created_at')->valueType('date');
+
+    });
+```
+
+The `valueType` method recognized the following types: 
+
+Scalar:
+
+* `int`
+* `float`
+* `string`
+* `null`
+* `bool`
+
+Special:
+
+* `numeric` - int, float, or numeric string (uses PHP's [is_numeric](https://www.php.net/manual/en/function.is-numeric.php))
+* `date` - A valid date/time string for PHP's [strtotime](https://www.php.net/manual/en/function.strtotime.php) function.
+
+You may specify multiple types using the `|` character or by sending an array.
+
+```php
+$keys->add('created_at')->valueType('date|null');
+// or
+$keys->add('created_at')->valueType(['date', 'null']);
+```
+
+## Key Values
+
+It is possible to set what values are supported for a key. This is mostly useful for enum columns.
+
+```php
+FilterQ::expression(...)
+    ->builder(...)
+    ->keys(function($keys) {
+
+        // only 200 is allowed
+        $keys->add('id')->value(200);
+
+        // allows either published or draft
+        $keys->add('status')->value(['published', 'draft']); 
+
+    });
+```
+
+
 ## Registering Custom Operators
 
 What if you wanted to support SQL `LIKE`? You can register a custom operator (here you are extending the FilterQ expressions language).
@@ -267,29 +350,6 @@ If you don't want one of default operators, you can remove it using `$operators-
     $operators->remove('>');
 });
 ```
-
-If someone tries use a non-defined or remove operator, an error will be thrown. See Exception handling below for more details on errors.
-
-## Limiting Operators of Each Key
-
-It is possible and recommended to define what operators are allowed for each key.
-
-```php
-FilterQ::expression(...)
-    ->builder(...)
-    ->keys(function($keys) {
-        // only these operators will be allowed (comma-separated string)
-        $keys->add('id')->operators('=,>,<');
-
-        // or use an array
-        $keys->add('slug')->operators(['=', '!=']);
-
-        // exclude operators (use true as the second param)
-        $keys->add('age')->operators('>', true);
-    })
-    ->addWhere();
-```
-
 
 ## Advanced Operators
 

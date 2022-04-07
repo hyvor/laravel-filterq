@@ -7,6 +7,9 @@ use Hyvor\FilterQ\Exceptions\ParserNotNumberException;
 
 class Parser
 {
+
+    private string $input;
+
     /**
      * Saves the jsonlogic-like output
      */
