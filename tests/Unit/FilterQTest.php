@@ -18,7 +18,7 @@ class FilterQTest extends TestCase {
         $filterQ2 = FilterQ::expression('')
             ->builder(TestModel::class)
             ->addWhere();
-        
+
         $q = TestModel::query();
 
         $this->assertEquals($filterQ->toSql(), $q->toSql());
@@ -89,6 +89,24 @@ class FilterQTest extends TestCase {
 
     }
 
+    public function test_with_relationship() {
+
+        $testModel = TestModel::factory()->make();
+        $test = $testModel->rel()->where(function ($query) {
+            $query->where('id', 2);
+        });
+
+        $filterQ = FilterQ::expression('id=2')
+            ->builder($testModel->rel())
+            ->keys(function($keys) {
+                $keys->add('id');
+            })
+            ->addWhere();
+
+        $this->assertEquals($filterQ->toSql(), $test->toSql());
+
+    }
+
     public function testJoin() {
 
         $filterQ = FilterQ::expression('author.name=test')
@@ -106,7 +124,7 @@ class FilterQTest extends TestCase {
             });
 
         $this->assertEquals($filterQ->toSql(), $q->toSql());
-        
+
 
     }
 
@@ -171,7 +189,7 @@ class FilterQTest extends TestCase {
             $query->whereRaw('MATCH (title) AGAINST (?)', ['Hello']);
         });
 
-        $this->assertEquals($withMatchAgainst->toSql(), $q->toSql());        
+        $this->assertEquals($withMatchAgainst->toSql(), $q->toSql());
 
     }
 

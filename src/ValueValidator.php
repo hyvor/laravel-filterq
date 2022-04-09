@@ -37,7 +37,6 @@ class ValueValidator
         // first, check direct values
         $supportedValues = $key->getSupportedValues();
         if (is_array($supportedValues)) {
-
             if (!in_array($value, $supportedValues)) {
                 $values = implode(', ', $supportedValues);
                 throw new InvalidValueException(

@@ -6,6 +6,7 @@ use Closure;
 use Hyvor\FilterQ\Exceptions\FilterQException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 
 class FilterQ
@@ -18,7 +19,7 @@ class FilterQ
     /**
      * The builder which we add where statements to
      */
-    private EloquentBuilder|QueryBuilder $builder;
+    private EloquentBuilder|QueryBuilder|Relation $builder;
 
     /**
      * Supported operators globally (when key-level operators are not set)
@@ -49,7 +50,7 @@ class FilterQ
         return $this;
     }
 
-    public function builder(EloquentBuilder|QueryBuilder|string $builder)
+    public function builder(EloquentBuilder|QueryBuilder|Relation|string $builder)
     {
 
         /**
@@ -59,7 +60,11 @@ class FilterQ
             $builder = $builder::query();
         }
 
-        if (!($builder instanceof EloquentBuilder || $builder instanceof QueryBuilder)) {
+        if (!(
+            $builder instanceof EloquentBuilder ||
+            $builder instanceof QueryBuilder ||
+            $builder instanceof Relation
+        )) {
             throw new FilterQException('Builder must be an instanceof Eloquent or Query builder');
         }
 
@@ -80,17 +85,17 @@ class FilterQ
     }
 
 
-    public function addWhere(): EloquentBuilder|QueryBuilder
+    public function addWhere(): EloquentBuilder|QueryBuilder|Relation
     {
 
         if (empty($this->expression)) {
             return $this->builder;
         }
 
-        $parsed = Parser::parse($this->expression, $this->operators);
+        $parsed = Parser::parse($this->expression);
 
         /**
-         * 
+         *
          * $parsed = [
          *  'or' => [
          *      ['id', '=', 1],
@@ -106,6 +111,12 @@ class FilterQ
         return $this->builder;
     }
 
+    /**
+     * @param $query
+     * @param $logicChunk
+     * @return void
+     * @throws FilterQException
+     */
     private function addWhereToQuery($query, $logicChunk)
     {
 
@@ -140,6 +151,11 @@ class FilterQ
                 if ($keyInst === null) {
                     throw new FilterQException("Key '$key' is not supported for filtering");
                 }
+
+                /**
+                 * @throw InvalidValueException
+                 */
+                ValueValidator::validate($keyInst, $value);
 
                 $column = $keyInst->getColumnName();
                 $join = $keyInst->getJoin();
@@ -192,7 +208,7 @@ class FilterQ
                     );
 
                 } else {
-                    
+
                     /**
                      * We handle the where
                      */
