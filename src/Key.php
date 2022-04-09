@@ -77,7 +77,7 @@ class Key
     /**
      * Set supported values
      */
-    public function values($values)
+    public function values($values) : self
     {
 
         if (!is_array($values)) {
@@ -85,13 +85,15 @@ class Key
         }
         $this->supportedValues = $values;
 
+        return $this;
+
     }
 
     /**
      * Set supported value types
      * @throws FilterQException
      */
-    public function valueType(array|string $type) : void
+    public function valueType(array|string $type) : self
     {
 
         $types = is_string($type) ? explode('|', $type) : $type;
@@ -105,6 +107,8 @@ class Key
         }
 
         $this->supportedValueTypes = $types;
+
+        return $this;
 
     }
 

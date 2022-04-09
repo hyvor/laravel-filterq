@@ -137,4 +137,19 @@ class KeyTest extends TestCase {
 
     }
 
+    public function test_chaining()
+    {
+        $key = new Key('test');
+
+        $keyNew = $key
+            ->column('test')
+            ->values('test')
+            ->valueType('string')
+            ->join(function() {})
+            ->operators('>');
+
+        $this->assertEquals($key, $keyNew);
+
+    }
+
 }

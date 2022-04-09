@@ -1,13 +1,13 @@
 # Introduction
 
-FilterQ allows advanced filtering in Laravel APIs. FilterQ was created for [Hyvor Blogs Data API]() to allow users to filter data the way **THEY WANT** using nested logic, just like they have access to `WHERE` in the SQL query.
+FilterQ allows advanced filtering in Laravel APIs. For example, you can get a single-line input like this from your users.
 
-You can get a single-line `filter` expression like this in your APIs.
 ```
 name=starter&(type=image|type=video)
 ```
 
-And, FilterQ securely converts it to `WHERE` in Laravel Query Builder.
+Then, FilterQ can convert it to `WHERE` statements in Laravel Query Builder like this:
+
 ```php
 ->where(function($query) { // wrapper
 
@@ -26,15 +26,21 @@ or in SQL:
 WHERE ( name = 'starter' AND ( type = 'image' OR type = 'video') )
 ```
 
-FilterQ supports `AND`, `OR`, and grouping logics, which makes it extremely powerful. It's like making it possible for your API consumers to filter data directly using SQL, but securely.
+It's like making it possible for your API consumers to filter data directly using SQL, but securely.
+
+---
+FilterQ was built for [Hyvor Blogs](https://blogs.hyvor.com)' Data API.
+
+---
 
 ## Features
 
-* Easy-to-write, single-line expressions.
+* Easy-to-write, single or multi-line expressions.
 * Logical operators (`&` and `|`) and nesting/grouping (with `()`)
 * Secure. FilterQ only gives access to the columns and operators you define.
 * Supports joining tables. Users can not only filter by columns but also via joined tables (Amazing, right?)
-* Extensible. You can add your own operators easily.
+* Supports "type hinting" for keys.
+* Extensible. You can add your own operators easily (ex: SQL `LIKE`).
 
 # FilterQ Expressions
 
@@ -52,13 +58,13 @@ A condition has three parts:
 - `operator`
 - `value`
 
-### - Key
+### Key
 
-Usually, the key is a column name of a table. But, it can also be something else where you use a custom handler to create the `where` part in Laravel.
+Usually, a key is a column name of the table. But, it can also be something else where you use a custom handler to create the `where` part in Laravel.
 
 It should match `[a-zA-Z0-9_.]+`. For example, `key`, `key_2`, `key.child` are valid.
 
-### - Operators
+### Operators
 
 By default, the following operators are supported.
 
@@ -69,19 +75,20 @@ By default, the following operators are supported.
 - `>=` - greater than or equals
 - `<=` - less than or equals
 
-If you want to add more operators (ex: an operator for SQL `LIKE`), see [Adding New Operators](#adding-operators).
+If you want to add more operators (ex: an operator for SQL `LIKE`), see [Custom Operators](#custom-operators).
 
-### - Values
+### Values
 
 - null: `null`
 - boolean: `true` or `false`
 - strings: `'hey'` or `hey`
-  - If you are using strings without quotes, it should match `[a-zA-Z_][a-zA-Z0-9_-]+`. 
+  - Strings without quotes should match `[a-zA-Z_][a-zA-Z0-9_-]+`.
     - should start with a letter
     - can contain alphanumeric characters, dashes, or underscores
     - no spaces are allowed
-    - it cannot be `true`, `false`, or `null` (meaning will become different)
+    - it cannot be `true`, `false`, or `null`
 - number: `250`, `-250`, or `2.5`
+
 # Basic Usage
 
 ```
@@ -110,7 +117,11 @@ $posts = $query
 
 `FilterQ` is a [Laravel Facade](https://laravel.com/docs/8.x/facades), so you can start with any method you like. The last method must be `addWhere()`.
 
+Let's learn step by step.
+
 ### 1. Setting the FilterQ Expression and Builder
+
+In most cases, you will get a single input in your API endpoints as the FilterQ expression. Therefore, here's an example with a controller.
 
 ```php
 
@@ -129,38 +140,48 @@ class MyController {
 }
 ```
 
-* `expression()` sets the FilterQ expression
-* `builder()` sets the Laravel Query. It accepts be a Laravel Query Builder, Eloquent Query Builder, or a Model.
-
+* `FilterQ::expression()` sets the FilterQ expression
+* `builder()` sets the Laravel Query. It accepts a Laravel Query Builder, Eloquent Query Builder, Relation, or a Model.
 
 ### 2. Set Keys
 
 Setting keys is important. Laravel uses prepared statements to prevent SQL injection. But, prepared statements only secure "data", not column names. Therefore, to prevent SQL injection, you have to define all keys (or columns) you allow the user to define within the FitlerQ expression.
 
+Here, we define two keys: `id` and `slug`. So, users can use these two keys in their FilterQ expressions. Using any other will throw an error.
+
 ```php
 FilterQ::expression(...)
-    ->builder(...)
+    ->builder(Post::class)
     ->keys(function ($keys) {
         $keys->add('id')->column('posts.id');
         $keys->add('slug');
     });
 ```
 
-* `keys()` takes a closure that will be called with `$keys` (`Hyvor\FilterQ\Keys`) object that can be used to set the supported keys.
+* `keys()` takes a closure that will be called with a `$keys` (`Hyvor\FilterQ\Keys`) object.
   * You must call the `$keys->add($key)` to registers a key. It returns a `Hyvor\FilterQ\Key` object, which you can chain to add more options.
-  * `Key::column()` sets the column name. If this is not called, FilterQ assumes that the key name is the column name.
-  * `Key::join()` sets a join (see below for more details). 
+  * `Key::column()` sets the column name. If this is not called, FilterQ uses the key name as the column name.
+  * `Key::join()` [sets a join](#joins).
+  * `Key::operators()` [sets supported operators](#key-operators)
+  * `Key::valueType()` [defines supported value types](#key-value-types)
+  * `Key::values()` [defines supported values](#key-values)
 
 
 ### 3. Finally, call `addWhere()`
 
-After all above operations, call the `addWhere()` method. This will add `where` statements to the builder you provided and will return the builder itself.
+After all the above operations, call the `addWhere()` method. This will add `where` statements to the builder you provided and will return the query builder itself. You can then do other operations like `limit`, `orderBy`, and even add more `where` statements. Finally, call `get()` to get results.
 
+```php
+$posts = FilterQ::expression(...)
+    ->builder(...)
+    ->keys(...)
+    ->addWhere()
+    ->limit(...)
+    ->orderBy(...)
+    ->get();
+```
 
-* `addWhere()` should be called finally. It returns the query builder, which now has the `where()` statements based on the provided FilterQ expression. You can then do other operations (`limit`, `orderBy`, and even more `where` statements) and call `get()` to get results.
-
-
-## Joining Tables
+## Joins
 
 Sometimes, you want to join a foreign table when a key is present. Let's see this example.
 
@@ -179,17 +200,21 @@ FilterQ::expression('author.name=hyvor')
     ->addWhere();
 ```
 
-In this example, a join will be added to the query builder if the `author.name` key is present (Note that even if the key is present multiple times, join will only be added one time). Then, it will add a `where` statement for column `authors.name`.
+In this example, two things are done on the `Post::class` query builder.
+1. A `->join()` is added to the query builder because the `author.name` key is present.
+2. A `->where()` is added for `authors.name` column.
 
-Here's how the above query will look like in SQL:
+> It is important to note that even if the same key is present multiple times, only one join will only be added.
+
+Here's what the above query will look like in SQL:
 
 ```sql
 select * from "posts" 
 inner join "authors" on "authors"."id" = "posts"."author_id" 
-where ("authors"."name" = ?)
+where ("authors"."name" = 'hyvor')
 ```
 
-`->join()` function is same as the [Laravel's Join](https://laravel.com/docs/8.x/queries#joins).
+`->join()` function takes the same arguments as the [Laravel's Join](https://laravel.com/docs/8.x/queries#joins).
 
 ### Left and Right Joins
 
@@ -221,13 +246,9 @@ $keys->add(...)
     });
 ```
 
-
-
-If someone tries use a non-defined or remove operator, an error will be thrown. See Exception handling below for more details on errors.
-
 ## Key Operators
 
-It is possible (and recommended) to define what operators are allowed for each key.
+It is possible (and recommended) to define what operators are allowed by a key.
 
 ```php
 FilterQ::expression(...)
@@ -247,7 +268,7 @@ FilterQ::expression(...)
 
 ## Key Value Types
 
-It is possible (and recommended) to define what values types are supported by a key.
+It is possible (and highly recommended) to define what value types are supported by a key.
 
 ```php
 FilterQ::expression(...)
@@ -256,13 +277,14 @@ FilterQ::expression(...)
 
         $keys->add('id')->valueType('integer');
         $keys->add('name')->valueType('string');
-        $keys->add('description')->valueType('string|null');
+        $keys->add('description')->valueType('string|null'); // |-seperated types
+        $keys->add('title')->valueType(['string', 'null']); // or an array
         $keys->add('created_at')->valueType('date');
 
     });
 ```
 
-The `valueType` method recognized the following types: 
+The `valueType` method supports the following types: 
 
 Scalar:
 
@@ -287,7 +309,7 @@ $keys->add('created_at')->valueType(['date', 'null']);
 
 ## Key Values
 
-It is possible to set what values are supported for a key. This is mostly useful for enum columns.
+It is possible to set what values are supported by a key. This is mostly useful for enum columns.
 
 ```php
 FilterQ::expression(...)
@@ -303,9 +325,9 @@ FilterQ::expression(...)
     });
 ```
 
-## Registering Custom Operators {#adding-operators}
+## Custom Operators
 
-What if you wanted to support SQL `LIKE`? You can register a custom operator (here you are extending the FilterQ expressions language).
+What if you wanted to support SQL `LIKE` as an operator? You can register a custom operator.
 
 ```php
 FilterQ::expression(...)
@@ -334,7 +356,7 @@ FilterQ::expression("title~'Hello%'")
     ->addWhere();
 ```
 
-This will create this SQL query
+This will create the following SQL query
 
 ```sql
 select * from "posts" where ("title" LIKE 'Hello%')
@@ -342,7 +364,7 @@ select * from "posts" where ("title" LIKE 'Hello%')
 
 ## Removing an operator
 
-If you don't want one of default operators, you can remove it using `$operators->remove($operator)`.
+If you don't want one of the default operators, you can remove it using `$operators->remove($operator)`.
 
 ```php
 ->operators(function($operators) {
@@ -352,7 +374,7 @@ If you don't want one of default operators, you can remove it using `$operators-
 
 ## Advanced Operators
 
-All operators does not work similar to `LIKE`. For example, MYSQL's `MATCH AGAINST`. Here's how to add an advanced operator like that.
+Not all operators work similar to `LIKE`. For example, MYSQL's `MATCH AGAINST`. Here's how to add an advanced operator like that.
 
 > **Important**: Use the `where`/`orWhere`, `whereRaw`/`orWhere` correctly as shown in the example below. Otherwise, logic may not work as expected.
 
@@ -382,9 +404,15 @@ FilterQ::expression(...)
 
 ## Exceptions Handling
 
-FilterQ throws `Hyvor\FilterQ\Exceptions\FilterQException` on an error with a message explaining the issue, which is safe to show to the user.
+It is advised to use FilterQ with proper exception handling.
 
-So, it is better to use FilterQ keeping exception handling in mind.
+FilterQ can throw 3 errors:
+
+* `Hyvor\FilterQ\Exceptions\FilterQException`
+* `Hyvor\FilterQ\Exceptions\ParserException` - when there's an error parsing the FilterQ Expression.
+* `Hyvor\FilterQ\Exceptions\InvalidValueException` - when an invalid value is used as per defined by [key values](#key-values) or [key value types](#key-value-types)
+
+The last two errors extend the `FilterQException` error, so catching the first one is enough. All errors have a "safe" message (English only), which can be displayed back to users for API debugging purposes.
 
 ```php
 try {
