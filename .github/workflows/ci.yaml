@@ -51,8 +51,5 @@ jobs:
             -   name: Install dependencies
                 run: composer update --ansi --no-progress
 
-            -   name: Install phpstan
-                run: composer bin phpstan update --ansi --no-progress
-
             -   name: Run phpstan
                 run: vendor/bin/phpstan analyse --ansi --no-progress
