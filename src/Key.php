@@ -12,6 +12,7 @@ class Key
 {
     private string $name; // key name
     private string $column; // where column name
+
     private ?Closure $join = null;
 
     /**
@@ -77,7 +78,7 @@ class Key
     /**
      * Set supported values
      */
-    public function values($values) : self
+    public function values(mixed $values) : self
     {
 
         if (!is_array($values)) {
@@ -91,6 +92,7 @@ class Key
 
     /**
      * Set supported value types
+     * @param string|string[] $type
      * @throws FilterQException
      */
     public function valueType(array|string $type) : self
@@ -112,7 +114,7 @@ class Key
 
     }
 
-    public function join(...$joinParams) : self
+    public function join(mixed ...$joinParams) : self
     {
 
         $join = $joinParams[0];

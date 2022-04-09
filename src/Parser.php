@@ -3,7 +3,6 @@
 namespace Hyvor\FilterQ;
 
 use Hyvor\FilterQ\Exceptions\ParserException;
-use Hyvor\FilterQ\Exceptions\ParserNotNumberException;
 
 class Parser
 {
@@ -11,7 +10,11 @@ class Parser
     private string $input;
 
     /**
-     * Saves the jsonlogic-like output
+     * @var array{
+     *      or?: array<array{string, string, mixed}>,
+     *      and?: array<array{string, string, mixed}>,
+     *      int?: array{string, string, mixed}
+     * }
      */
     public array $output = [];
 
@@ -20,7 +23,7 @@ class Parser
      */
     private int $i = 0;
 
-    private const ERROR_AND_OR_TOGETHER = 'AND and OR cannot be combined together. Use parentheses to seperate them';
+    private const ERROR_AND_OR_TOGETHER = 'AND and OR cannot be combined together. Use parentheses to separate them';
     private const ERROR_NO_CLOSING_PARENTHESIS = 'Closing ) not found';
     private const ERROR_NO_CLOSING_QUOTE = "Closing quote (') not found";
 
@@ -39,7 +42,7 @@ class Parser
          * We should not be fooled by something like this:
          * (free=false)|(other=true)
          *
-         * If we just matched, ( in the begining and ) at the end, it will not suffice
+         * If we just matched, ( in the beginning and ) at the end, it will not suffice
          */
 
         /**
@@ -59,10 +62,12 @@ class Parser
     }
 
     /**
-     * This funcrtion parses anything between ()
+     * This function parses anything between ()
      * It is called recursively for nested ()
+     * @return mixed[]
+     * @throws ParserException
      */
-    private function parseParentheses()
+    private function parseParentheses() : array
     {
 
         $this->skipWhitespaces();
@@ -83,7 +88,10 @@ class Parser
          */
         $currentLogic = null;
 
-        while ($this->validateEndOfInput() && $this->input[$this->i] !== ')') {
+        while (
+            $this->validateEndOfInput(self::ERROR_NO_CLOSING_PARENTHESIS) &&
+            $this->input[$this->i] !== ')'
+        ) {
             $this->skipWhitespaces();
 
             if ($this->input[$this->i] === '(') {
@@ -164,7 +172,7 @@ class Parser
         ];
     }
 
-    private function parseValue()
+    private function parseValue() : mixed
     {
         $this->skipWhitespaces();
 
@@ -183,7 +191,7 @@ class Parser
 
         if (
             preg_match(
-                '/(^\-?\d+(?:(\.)(\d+))?)(?:[^\d]|$)/',
+                '/(^-?\d+(?:(\.)(\d+))?)(?:[^\d]|$)/',
                 $this->getNextPart(),
                 $numberMatches
             )
@@ -251,7 +259,7 @@ class Parser
         return null;
     }
 
-    private function parseKeyword($string, $value): ?bool
+    private function parseKeyword(string $string, ?bool $value): ?bool
     {
 
         if (substr($this->input, $this->i, strlen($string)) === $string) {
@@ -265,7 +273,7 @@ class Parser
     /**
      * Get the part after the cursor in the input
      */
-    private function getNextPart()
+    private function getNextPart() : string
     {
         return substr($this->input, $this->i);
     }
@@ -274,7 +282,7 @@ class Parser
      * Skips whitespaces
      * Cursor placed at the next
      */
-    private function skipWhitespaces()
+    private function skipWhitespaces() : void
     {
         /**
          * No need to check the end of string, because the input is trimmed
@@ -289,22 +297,30 @@ class Parser
         }
     }
 
-    private function validateEndOfInput($error = null)
+    /**
+     * @throws ParserException
+     */
+    private function validateEndOfInput(string $error) : bool
     {
 
         /**
          * Check if the string is over before the next loop
          */
-        $error ??= self::ERROR_NO_CLOSING_PARENTHESIS;
         if (!isset($this->input[$this->i])) {
             throw new ParserException($error);
-            return false;
         }
 
         return true;
     }
 
-    public static function parse(string $input)
+    /**
+     * @return array{
+     *      or?: array<array{string, string, mixed}>,
+     *      and?: array<array{string, string, mixed}>,
+     *      int?: array{string, string, mixed}
+     * }
+     */
+    public static function parse(string $input) : array
     {
         return (new self($input))->output;
     }

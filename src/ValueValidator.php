@@ -74,7 +74,7 @@ class ValueValidator
                 } else if ($supportedValueType === 'date') {
 
                     // Check if the date is valid
-                    $date = is_int($value) ? $value : strtotime($value);
+                    $date = is_int($value) ? $value : strtotime((string) $value);
 
                     if ($date !== false) {
                         $isValid = true;

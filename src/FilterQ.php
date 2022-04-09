@@ -35,6 +35,7 @@ class FilterQ
 
     /**
      * To make sure a key's join is only run one time
+     * @var string[]
      */
     private array $joinedKeys = [];
 
@@ -44,13 +45,13 @@ class FilterQ
         $this->operators = new Operators();
     }
 
-    public function expression(?string $expression)
+    public function expression(?string $expression) : self
     {
         $this->expression = trim($expression ?? '');
         return $this;
     }
 
-    public function builder(EloquentBuilder|QueryBuilder|Relation|string $builder)
+    public function builder(EloquentBuilder|QueryBuilder|Relation|string $builder) : self
     {
 
         /**
@@ -99,7 +100,12 @@ class FilterQ
          * $parsed = [
          *  'or' => [
          *      ['id', '=', 1],
-         *      ['slug', '=', 'hello']
+         *      ['slug', '=', 'hello'],
+         *      [
+     *              'and' => [
+         *              ['title', '=', 'hey']
+         *          ]
+ *              ]
          *  ]
          * ]
          */
@@ -112,15 +118,13 @@ class FilterQ
     }
 
     /**
-     * @param $query
-     * @param $logicChunk
-     * @return void
+     * @param mixed[] $logicChunk
      * @throws FilterQException
      */
-    private function addWhereToQuery($query, $logicChunk)
+    private function addWhereToQuery(EloquentBuilder|QueryBuilder $query, array $logicChunk) : void
     {
 
-        $type = isset($logicChunk['or']) ? 'or' : 'and';
+        $type = array_key_exists('or', $logicChunk) ? 'or' : 'and';
         $logicChunkWhere = $type === 'and' ? 'where' : 'orWhere';
 
         foreach ($logicChunk[$type] as $condition) {

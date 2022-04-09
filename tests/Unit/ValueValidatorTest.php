@@ -186,9 +186,6 @@ class ValueValidatorTest extends TestCase
 
     }
 
-    /**
-     * @group failing
-     */
     public function test_key_value_type_date_unix()
     {
 

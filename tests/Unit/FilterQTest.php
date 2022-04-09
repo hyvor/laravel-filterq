@@ -264,4 +264,28 @@ class FilterQTest extends TestCase {
 
     }
 
+
+    public function test_nested_logic()
+    {
+
+        $filterQ = FilterQ::expression('((key=1&key=2)|(key=2))')
+            ->builder(TestModel::class)
+            ->keys(function($keys) {
+                $keys->add('key');
+            })
+            ->addWhere();
+
+        $test = TestModel::where(function($query) {
+            $query->where(function ($query) {
+                $query->where('key', 1)
+                    ->where('key', 2);
+            })->orWhere(function ($query) {
+                $query->where('key', 2);
+            });
+        });
+
+        $this->assertEquals($test->toSql(), $filterQ->toSql());
+
+    }
+
 }
