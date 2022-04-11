@@ -41,4 +41,16 @@ class KeyValueTypeTest extends TestCase
 
     }
 
+    public function test_key_type_date()
+    {
+
+        FilterQ::expression("date='2022-02-22'")
+            ->builder(TestModel::class)
+            ->keys(function($keys) {
+                $keys->add('date')->valueType('date');
+            })
+            ->addWhere();
+
+    }
+
 }

@@ -180,7 +180,7 @@ class ValueValidatorTest extends TestCase
         $key = new Key('test');
         $key->valueType('date');
 
-        $date = Carbon::parse('yesterday');
+        $date = Carbon::parse('yesterday')->toDateTimeString();
 
         $this->assertEquals($date, ValueValidator::validate($key, 'yesterday'));
 
@@ -192,7 +192,7 @@ class ValueValidatorTest extends TestCase
         $key = new Key('test');
         $key->valueType('date');
 
-        $date = Carbon::createFromTimestamp(1649358544);
+        $date = Carbon::createFromTimestamp(1649358544)->toDateTimeString();
 
         $this->assertEquals($date, ValueValidator::validate($key, 1649358544));
 

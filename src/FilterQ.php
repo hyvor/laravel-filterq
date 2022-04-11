@@ -159,7 +159,7 @@ class FilterQ
                 /**
                  * @throw InvalidValueException
                  */
-                ValueValidator::validate($keyInst, $value);
+                $value = ValueValidator::validate($keyInst, $value);
 
                 $column = $keyInst->getColumnName();
                 $join = $keyInst->getJoin();

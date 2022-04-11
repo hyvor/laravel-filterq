@@ -79,7 +79,7 @@ class ValueValidator
                     if ($date !== false) {
                         $isValid = true;
                         // update value to carbon date
-                        $value = Carbon::createFromTimestamp($date);
+                        $value = Carbon::createFromTimestamp($date)->toDateTimeString();
                         break;
                     }
 
